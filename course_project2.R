@@ -19,6 +19,7 @@ setwd("C:/Users/KOLeary/Documents/GitHub/Exploratory-Data-Analysis-Course-Projec
 
 library(graphics) ##plotting functions for the "base" graphing systems, including plot, hist, boxplot and many others.
 library(grDevices) ##contains all the code implementing the various graphics devices, including X11, PDF, PostScript, PNG, etc.
+library(ggplot2)
 
 fileUrl <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip" 
 download.file(fileUrl, destfile = "./exdata-data-NEI_data.zip")
@@ -60,36 +61,69 @@ dev.off() ##close png
 
 ################################################Plot 3######################################
 
-library(ggplot2)
-
 png(file="plot3.png", bg="transparent") ##open png file
-
-baltdata <- emissdata[which(emissdata$fips == "24510"),] ##subset data by rows where fips is equal to 24510
-
-total <- data.frame(with(baltdata, tapply(Emissions, list(year, type), sum))) ##checking between these two
-
-total <- cbind(Years = rownames(total), total) ##convert row names to column
-
-rownames(total) <- NULL ## remove row names
-
-total$Years <- factor(total$Years)
-
-
-
-qplot(Year,  Emissions,  data	=	total,	facets	=	.~type)
-
-str(total)
-
 
 baltdata <- emissdata[which(emissdata$fips == "24510"),] ##subset data by rows where fips is equal to 24510 (Baltimore)
 
+library(dplyr) ##bring up dplr library
 
-baltdata$year <- factor(baltdata$year) ##convert year to factor
+convertbl <- tbl_df(baltdata) ## convert table to tbl
+rm("baltdata") ## remove other handle
+convertbl ##print converted table
 
-baltdata$type <- factor(baltdata$type) ##convert type to factor
+sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
+ group_by(type, year)%>% ##group by type and year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
+ summarise(Emissions = sum(Emissions)) ##summarise the grouped data in columns and name and sum emmissions
 
-str(baltdata)
+qplot(year,  Emissions,  data	=	sumtable,	facets	=	.~type, geom	=	c("point",  "smooth"), method  =	"gam") + ##plot Year by Emissions, seperate by type, point, smooth and general additive model (gam)
+  labs(x = "Years", y = "Total Emissions (tons)", title = "Total Emissions by Source Type, Baltimore 1999 - 2008")
 
-qplot(year,  Emissions,	data	=	baltdata,	facets	=	.~type)
+dev.off() ##close png
 
+################################################Plot 4######################################
+
+png(file="plot4.png", bg="transparent") ##open png file
+
+classcode$SCC <- as.numeric(as.character(classcode$SCC)) ##convert SCC column from factor to number while preserving content
+
+listloc <- grep("*.oal.*", classcode$EI.Sector) ##identify the locations of strings containing "oal" in EI.Sector column
+
+subclass <- classcode[listloc, ] ##subset classcode by list locations
+
+subcol <- subclass[,1] ##subset the first column of resultant data, SCC
+
+emissmatch <- emissdata[which(emissdata$SCC %in% subcol),] ##subset emissdata where SCC matches subcol contents
+
+convertbl <- tbl_df(emissmatch) ## convert table to tbl
+rm("emissmatch") ## remove other handle
+
+sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
+  group_by(year)%>% ##group by year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
+  summarise(Emissions = sum(Emissions)/1000) ##summarise the grouped data in columns and name and sum emmissions. Divide for kilotons
+
+qplot(year, Emissions, data = sumtable, stat = "identity", geom = "bar", fill = year) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
+  labs(x = "Years", y = "Total Emissions (kilotons)", title = "Total Emissions in US by Coal Combustion 1999 - 2008") ##assign labels
+
+dev.off() ##close png
+
+################################################Plot 5######################################
+
+baltdata <- emissdata[which(emissdata$fips == "24510"),] ##subset data by rows where fips is equal to 24510 (Baltimore)
+
+classcode$SCC <- as.numeric(as.character(classcode$SCC)) ##convert SCC column from factor to number while preserving content
+
+listloc <- grep("Onroad", classcode$Data.Category) ##identify the locations of strings containing "oal" in EI.Sector column
+
+subclass <- classcode[listloc, ] ##subset classcode by list locations
+
+subcol <- subclass[,1] ##subset the first column of resultant data, SCC
+
+emissmatch <- emissdata[which(emissdata$SCC %in% subcol),] ##sub
+
+convertbl <- tbl_df(emissmatch) ## convert table to tbl
+rm("emissmatch") ## remove other handle
+
+sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
+  group_by(year)%>% ##group by year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
+  summarise(Emissions = sum(Emissions)) ##summarise the grouped data in columns and name and sum emmissions. Divide for kilotons
 
