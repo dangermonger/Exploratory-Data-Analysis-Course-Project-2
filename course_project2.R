@@ -20,6 +20,7 @@ setwd("C:/Users/KOLeary/Documents/GitHub/Exploratory-Data-Analysis-Course-Projec
 library(graphics) ##plotting functions for the "base" graphing systems, including plot, hist, boxplot and many others.
 library(grDevices) ##contains all the code implementing the various graphics devices, including X11, PDF, PostScript, PNG, etc.
 library(ggplot2)
+library(dplyr) ##bring up dplr library
 
 fileUrl <- "https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip" 
 download.file(fileUrl, destfile = "./exdata-data-NEI_data.zip")
@@ -65,8 +66,6 @@ png(file="plot3.png", bg="transparent") ##open png file
 
 baltdata <- emissdata[which(emissdata$fips == "24510"),] ##subset data by rows where fips is equal to 24510 (Baltimore)
 
-library(dplyr) ##bring up dplr library
-
 convertbl <- tbl_df(baltdata) ## convert table to tbl
 rm("baltdata") ## remove other handle
 convertbl ##print converted table
@@ -94,6 +93,8 @@ subcol <- subclass[,1] ##subset the first column of resultant data, SCC
 
 emissmatch <- emissdata[which(emissdata$SCC %in% subcol),] ##subset emissdata where SCC matches subcol contents
 
+emissmatch$year <- factor(emissmatch$year) ##convert year column to factor
+
 convertbl <- tbl_df(emissmatch) ## convert table to tbl
 rm("emissmatch") ## remove other handle
 
@@ -101,29 +102,86 @@ sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
   group_by(year)%>% ##group by year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
   summarise(Emissions = sum(Emissions)/1000) ##summarise the grouped data in columns and name and sum emmissions. Divide for kilotons
 
+
 qplot(year, Emissions, data = sumtable, stat = "identity", geom = "bar", fill = year) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
   labs(x = "Years", y = "Total Emissions (kilotons)", title = "Total Emissions in US by Coal Combustion 1999 - 2008") ##assign labels
+
 
 dev.off() ##close png
 
 ################################################Plot 5######################################
 
+png(file="plot5.png", bg="transparent") ##open png file
+
 baltdata <- emissdata[which(emissdata$fips == "24510"),] ##subset data by rows where fips is equal to 24510 (Baltimore)
 
-classcode$SCC <- as.numeric(as.character(classcode$SCC)) ##convert SCC column from factor to number while preserving content
+baltonroad <- baltdata[which(baltdata$type == "ON-ROAD"),] ##subset baltdata by rows where type is equal to ON-ROAD to filter by motor vehicles
 
-listloc <- grep("Onroad", classcode$Data.Category) ##identify the locations of strings containing "oal" in EI.Sector column
+baltonroad$year <- factor(baltonroad$year) ##convert year column to a factor vector
 
-subclass <- classcode[listloc, ] ##subset classcode by list locations
-
-subcol <- subclass[,1] ##subset the first column of resultant data, SCC
-
-emissmatch <- emissdata[which(emissdata$SCC %in% subcol),] ##sub
-
-convertbl <- tbl_df(emissmatch) ## convert table to tbl
-rm("emissmatch") ## remove other handle
+convertbl <- tbl_df(baltonroad) ## convert table to tbl
+rm("baltonroad") ## remove other handle
 
 sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
   group_by(year)%>% ##group by year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
-  summarise(Emissions = sum(Emissions)) ##summarise the grouped data in columns and name and sum emmissions. Divide for kilotons
+  summarise(Emissions = sum(Emissions)) ##summarise the grouped data in columns and name and sum emmissions. 
+
+qplot(year, Emissions, data = sumtable, stat = "identity", geom = "bar", fill = year) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
+  labs(x = "Years", y = "Total Emissions (tons)", title = "Motor Vehicle Emissions in Baltimore City 1999 - 2008") ## add labels
+
+dev.off() ##close png
+
+################################################Plot 6######################################
+
+bala <- subset(emissdata, emissdata$fips %in% c("24510","06037"))##subset data by rows where fips is equal to 24510 (Baltimore) and LA 06037
+
+balaonroad <- bala[which(bala$type == "ON-ROAD"),] ##subset baltdata by rows where type is equal to ON-ROAD to filter by motor vehicles
+
+balaonroad$year <- factor(balaonroad$year) ##convert year column to a factor vector
+
+balaonroad$fips <- factor(balaonroad$fips) ##convert fips column to a factor vector
+
+levels(balaonroad$fips) <- c("Los Angeles", "Baltimore")
+
+convertbl <- tbl_df(balaonroad) ## convert table to tbl
+rm("balaonroad") ## remove other handle
+
+sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
+  group_by(fips, year)%>% ##group by year then... SUBSEQUENT OPERATIONS ARE PERFORMED BY GROUP
+  summarise(Emissions = sum(Emissions)) ##summarise the grouped data in columns and name and sum emmissions then..
+
+
+qplot(year, Emissions, data = sumtable, facets  =	.~fips, stat = "identity", geom = "bar", fill = year) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
+  labs(x = "Years", y = "Total Emissions (tons)", title = "Motor Vehicle Emissions in Los Angeles and Baltimore Cities 1999 - 2008") ## add labels
+
+mutate(sumtable, Change = Emissions/lag(Emissions))
+
+mutate(sumtable, Change = Emissions/lag(Emissions) * 100)
+
+growth <- function(x)x/lag(x)-1)
+sumtable %>% 
+  group_by(fips) %>% 
+  mutate_each(funs(growth), Emissions)
+
+100 *(4101.321 - 3931.12)/3931.12
+100 *(346 - 88)/88
+(Present - Past)/Past
+
+R> sumtable/lag(sumtable,-1) - 1
+
+R> data/lag(data,-1) - 1
+
+data <- ts(data.frame(x1=c(1:10), x2=c(11:20), x3=c(21:30)), start = c(2010,3), frequency = 4)
+
+Website <- rep(paste("Website",1:3),2)
+Year <- c(rep(2013,3),rep(2014,3))
+V1 <- c(10,20,50,20,30,70)
+V2 <- c(5,15,30,15,30,45)
+df <- data.frame(Website,Year,V1,V2)
+df
+
+growth <- function(x)x/lag(x)-1
+df %>% 
+  group_by(Website) %>% 
+  mutate_each(funs(growth), V1, V2)
 
