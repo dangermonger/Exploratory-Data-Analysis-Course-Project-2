@@ -154,6 +154,9 @@ sumtable <- convertbl %>% ##sumtable is assigned to convertbl then...
 qplot(year, Emissions, data = sumtable, facets  =	.~fips, stat = "identity", geom = "bar", fill = year) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
   labs(x = "Years", y = "Total Emissions (tons)", title = "Motor Vehicle Emissions in Los Angeles and Baltimore Cities 1999 - 2008") ## add labels
 
+qplot(year, Emissions, data = sumtable, facets  =  .~fips, stat_smooth(method = "lm"), geom_point() ) + ##plot Year by Emissions, bar chart and stat identity to stop data being binned
+  labs(x = "Years", y = "Total Emissions (tons)", title = "Motor Vehicle Emissions in Los Angeles and Baltimore Cities 1999 - 2008") ## add labels
+
 mutate(sumtable, Change = Emissions/lag(Emissions))
 
 mutate(sumtable, Change = Emissions/lag(Emissions) * 100)
